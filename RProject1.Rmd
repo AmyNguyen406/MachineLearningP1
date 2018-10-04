@@ -1,0 +1,369 @@
+---
+output:
+  word_document: default
+  html_document: default
+---
+
+<center>
+##Project 1
+
+####*Intro to Machine Learning*
+####*Summer 2018*
+####*Amy Nguyen*
+
+</center>
+
+
+####**Reading In The Data**
+
+
+For my regression scenario I have decided to use a data set containing Facebook metrics. In order to import the data I downloaded the excel file from UCI and saved it as a csv file. In order to read the data I used the read.delim() function as I needed to identify the separators for the columns which was the character ';'.
+
+```{r}
+#Facebook Data
+Facebook_df <- read.delim("C:/Users/amy19/Desktop/facebook.csv", sep=";")
+```
+
+
+For my classification scenario I have decided to use a data set that looked at movies released in 2014 and 2015 and tracked features such as genre, gross product, budget, etc. In order to import the data, I did the same steps as the above for importing the Facebook data. However since the columns were separated by commas I used the read.csv() function since I did not need to identify the separators.  
+
+```{r}
+#Movies Data
+Movies_df <- read.csv("C:/Users/amy19/Desktop/2014Movies.csv")
+```
+
+
+####**Regression: Facebook Metrics**
+Data Source: http://archive.ics.uci.edu/ml/datasets/Facebook+Comment+Volume+Dataset
+
+####Naming Variables / Columns
+In order to get a feel for the data let's begin by looking at the names of the variables and the structure.
+```{r}
+#Variable Names
+names(Facebook_df)
+```
+
+Since I'm not the biggest fan of the periods in the variable names and would like to simplify some of the names I'm going to rename the column names using the names() function once again.
+
+```{r}
+names(Facebook_df) <- c("Total Page Likes", "Type", "Category", "Monthly Posts", "Weekly Posts", 
+                        "Hourly Posts", "Paid", "Lifetime Post Reach", "Lifetime Post Impressions",
+                        "Lifetime Engaged Users", "Lifetime Post Consumers", "Lifetime Post Consumptions",
+                        "Lifetime Post Impressions By Page Likers", "Lifetime Post Reach By Page Likers",
+                        "Lifetime Page Likers and Engagers", "Comments", "Likes", "Share", 
+                        "Total Interactions")
+names(Facebook_df)
+```
+
+Now let's look at the structure of our data set using the str() function.
+
+```{r}
+str(Facebook_df)
+```
+
+From the structure we can see that there are 499 objects and 19 variables. Of the 19 variables 18 represent are quantitative data as indicated by the int data type. The only qualitative variable is "Type" which is represented by a factor. 
+
+####Choosing Our Predictor And Target
+For this set of data let's look at Total Page Likes, Paid, Lifetime Engaged Users and Lifetime Page Likers and Engagers to determine the number of total interactions a Facebook post receives. I choose these variables as my predictors because from personal use of Facebook I would think that they would make good predictors.
+
+Let's start by simplifing our data frame and pulling out only the columns we want.
+
+```{r}
+newFacebook <- subset(Facebook_df, select = c("Total Page Likes", "Paid", "Lifetime Engaged Users", "Lifetime Page Likers and Engagers", "Total Interactions"))
+
+```
+
+####Variable Data
+Now let's look at some data on each variable.
+
+####*pairs()*
+Let's use the pairs() function to look at possible correlations between the variables.
+```{r}
+pairs(newFacebook)
+```
+
+
+#####*Total Page Likes*
+Total Page Likes are the number of likes for each individual Facebook page in our data set.
+Let's look at a summary for our 'Total Page Likes'.
+```{r}
+summary(newFacebook$'Total Page Likes')
+
+```
+
+#####*Paid*
+Paid is represented in as 0 and 1 where 0 means that the post is not paid and 1 means that the post is paid. Let's look at the data to get a taste of how many pages have paided posts and use sum to calculate the total number of pages that have a paid post in our data.
+```{r}
+head(newFacebook$'Paid')
+
+tail(newFacebook$'Paid')
+
+paste("Total number of paid posts: ",sum(newFacebook$'Paid'))
+
+```
+Therefore, we can see of or 499 sampled pages, 139 pages have paid for a post which is approximately 28%.
+
+#####*Lifetime Engaged Users*
+Lifetime Engaged Users is the total number of people to have ever interacted with a page whether that is liking, commenting, or sharing a post. Let's look at a summary for this data.
+```{r}
+summary(newFacebook$'Lifetime Engaged Users')
+```
+
+#####*Lifetime Page Likers and Engagers*
+Lifetime Page Likers and Engagers is the total number of people that have both liked the page and interact with the posts that the page makes. Let's look at a summary for this data.
+```{r}
+summary(newFacebook$'Lifetime Page Likers and Engagers')
+```
+
+
+#####*Total Interaction*
+Now let's get a summary of our target variable, 'Total Interaction'.
+```{r}
+summary(newFacebook$'Total Interactions')
+```
+
+####Linear Regression Model
+```{r}
+#Setting seed and randomly sampling
+set.seed(0000)
+i <- sample(1:nrow(newFacebook), nrow(newFacebook)*0.75, replace=FALSE)
+
+#Seperating into train and test data
+ftrain <- newFacebook[i,]
+ftest <- newFacebook[-i,]
+
+#Creating linear model
+lmf <- lm(`Total Interactions`~., data = ftrain)
+
+#Summary/Metrics of the linear regression model
+summary(lmf)
+```
+From the summary we can see a few key interesting points such as the fact that Lifetime Engaged Users is a good predictor but not Lifetime Page Likers and Engagers. We can also see that Total Page Likes makes an okay predictor as well.
+
+Funny enough, 'Paid' which represents whether or not the post was paid to be spread is not a good predictor. This can be further proved is we look at the correlation using the cor() function. 
+```{r}
+cor(ftrain$`Total Page Likes`, ftrain$Paid)
+```
+We found the correlation to only be 0.046 meaning that there is a very small positive correlation. Based off this one might say that paid posts are not worth it if you are looking for user interaction. 
+
+
+#####*Testing The Model*
+```{r}
+predFL<- predict(lmf, newdata = ftest, na.rm= TRUE)
+print(cbind(Predicted = head(predFL, n=10), Actual = head(ftest$`Total Interactions`, n=10)))
+```
+
+#####*Correlation Value*
+```{r}
+corFL <-cor(predFL, ftest$`Total Interactions`)
+print(paste("Correlation Value: ", corFL))
+```
+
+
+#####*MSE and RMSE Values*
+```{r}
+mse1 <- mean((predFL-ftest$`Total Interactions`)^2, na.rm=TRUE)
+print(paste("MSE value: ", mse1))
+
+rmse1 <-sqrt(mse1)
+print(paste("RMSE value: ", rmse1))
+```
+
+  
+
+#####*Plotting The Residuals*
+```{r}
+par(mfrow=c(2,2))
+plot(lmf)
+```
+
+
+
+####kNN Regression
+
+First let's load in our libraries.
+```{r}
+library(caret)
+```
+
+Using kNN Algorithm:
+```{r}
+ftrain$`Total Interactions` <- as.integer(ftrain$`Total Interactions`)
+ftest$`Total Interactions` <- as.integer(ftest$`Total Interactions`)
+
+```
+
+#####*Looking For The Best 'k' Value*
+```{r}
+cor_k <- rep(0, 20)
+mse_k <- rep(0, 20)
+i <- 1
+for (k in seq(1, 25)){
+  fit_k <- knnreg(ftrain[,1:4],ftrain[,5], k=k)
+  pred_k <- predict(fit_k, ftest[,1:4])
+  cor_k[i] <- cor(pred_k, ftest$`Total Interactions`)
+  mse_k[i] <- mean((pred_k - ftest$`Total Interactions`)^2)
+  print(paste("k=", k, cor_k[i], mse_k[i]))
+  i <- i + 1
+}
+```
+
+From the above equation we can see that the best k value is k=13.
+```{r}
+#Storing correlation, mse, and rmse value for best k for later comparison.
+fit_bestK <- knnreg(ftrain[,1:4], ftrain[,5] , k=13)
+pred_bestK <- predict(fit_bestK, ftest[,1:4])
+
+cor_bestK <- cor(pred_bestK, ftest$`Total Interactions`)
+mse_bestK <- mean((pred_bestK - ftest$`Total Interactions`)^2)
+rmse_bestK <- sqrt(mse_bestK)
+
+```
+
+
+####Linear Regression vs kNN 
+Let's compare the two models to see which one is better for predicting how many total interactions a post will get. 
+
+First let's look at correlation for the two models.
+```{r}
+print(paste("Linear Correlation = ", corFL))
+print(paste("kNN Correlation = ", cor_bestK))
+```
+0.63789 > 0.3657 therefore the Linear Regression model wins this round.
+
+Now let's look at MSE and RMSE.
+```{r}
+print(paste("Linear MSE = ", mse1))
+print(paste("Linear RMSE = ", rmse1))
+
+print(paste("kNN MSE = ", mse_bestK))
+print(paste("kNN RMSE = ", rmse_bestK))
+```
+ In the case of MSE and RMSE Linear regression had the lower value.
+ 
+**Therefore we can conclude that between Linear Regression and kNN the best model for our data is Linear Regression.**
+ 
+
+ 
+ 
+ 
+####**Classification: Conventional and Social Media Movies** 
+Data Source" http://archive.ics.uci.edu/ml/datasets/CSM+%28Conventional+and+Social+Media+Movies%29+Dataset+2014+and+2015
+
+
+####*Understanding The Variables*
+Before we begin our classification of the data let's start by looking at what our data holds.
+```{r}
+#Variable Names
+names(Movies_df)
+
+#Structure
+str(Movies_df)
+
+```
+
+Looking at the data I would like to predict the Genre based on Rating, Gross, Budget, Likes, Dislikes, and Comments. However first let's change Genre into a factor for classification and look at it's levels.
+
+```{r}
+Movies_df$Genre <- factor(Movies_df$Genre)
+levels(Movies_df$Genre)
+```
+
+Now let's create a new dataframe to store all of the variables that we will be looking at.
+```{r}
+newMovies <- subset(Movies_df, select = c("Ratings", "Genre", "Gross", "Budget", "Likes", "Dislikes", "Comments"))
+```
+
+#####*pairs() and cor()*
+Let's use the pairs() and cor() funtion to look at correlations.
+```{r}
+pairs(newMovies)
+```
+
+To break down our variables. Our target is Genre which represents the genre of the movie. In our dataset labels were not given so our genres are: 1,2,3,6,7,8,9,10, 12, and 15.
+
+Now to break down the predictors. Rating is the critic rating of the movie. Gross is the gross profit of the movie (gross = profit - budget). The Budget is how much money was spent to make the movie. Likes are the number of likes on Youtube, dislikes are the number of dislikes on Youtube and Comments are the number of comments on Youtube.
+  
+```{r}
+summary(newMovies)
+```
+  
+####Logistic Regression Model
+Now that we have explored the variables let's use a logistic regression model to see if we can classify our data into the correct genre.
+
+```{r}
+#Setting seed and randomly sampling
+set.seed(0001)
+i <- sample(1:nrow(newFacebook), nrow(newFacebook)*0.75, replace=FALSE)
+
+#Separating into train and test data
+mtrain <- newMovies[i,]
+mtest <- newMovies[-i,]
+
+#Creating linear Model
+glmm <- glm(Genre~. , data=mtrain, family="binomial")
+
+#Plotting to look at graph
+par(mfrow=c(2,2))
+plot(glmm)
+
+#Summary/Metrics of the linear regression model
+summary(glmm)
+```
+
+Looking at our summary we can see that our best predictors for genre are Budget, Likes, and Comments. That being said, although they are our best predictors the two stars indicate that they are only okay predictors and non-necessarily good predictors.
+
+
+#####*Testing The Model*
+Now let's test our model by checking the accuracy.
+
+```{r}
+prob <- predict(glmm, newdata = mtest, type="response")
+predML <- ifelse(prob>0.5, 1, 0)
+acc <- mean(predML==mtest$Genre)
+print(paste("accuracy = ", acc))
+
+#Test Genre Values
+mtest$Genre
+#Accuracy Table
+table(predML, mtest$Genre)
+```
+
+We can see that with the logistic regression model we have an accuracy of 0.25641% which means that our predictors and our model do not do that great of a job identifying the genre of a movie.
+
+
+####kNN Classification
+
+Since our logistic regression model didn't produce the best accuracy why don't we try using the kNN classification instead.
+
+```{r}
+trainVector <-c(1,3,4,5,6,7)
+#Set Seed
+set.seed(1111) 
+ind <- sample(2, nrow(newMovies), replace=TRUE, prob=c(0.75, 0.25))
+train_MK <- newMovies[ind==1, trainVector]
+test_MK <- newMovies[ind==2, trainVector]
+trainLabels <- newMovies[ind==1, 2]
+testLabels <- newMovies[ind==2, 2]
+```
+
+Now let's classify and compute the accuracy.
+```{r}
+library(class)
+
+pred_MK <- knn(train=train_MK, test=test_MK, cl=trainLabels, k= 7)
+
+results <- pred_MK == testLabels
+acc2 <- length(which(results==TRUE)) / length(results)
+print(paste("accuracy = ", acc2))
+
+```
+
+####Logistic Regression vs kNN Classification
+In order to compare the two models lets look at the most important the accuracy.
+```{r}
+print(paste("Logistic Accuracy = ", acc))
+print(paste("kNN Accuracy = ", acc2))
+```
+*Looking at our data we found the kNN Classification to be more accurate and thus the better algorithm for predicting the genre of the movie.*
+
