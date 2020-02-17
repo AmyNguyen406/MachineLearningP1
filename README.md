@@ -1,4 +1,4 @@
-# MachineLearningP1
+# Facebook Metrics & Social Media Movie Classification w/ Machine Learning
 
 This machine learning project was written using R in RStudio.
 
