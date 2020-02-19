@@ -1,8 +1,6 @@
 # Facebook Metrics & Movie Category Classification w/ Machine Learning
 
-This machine learning project was written using R in RStudio.
-
-The purpose of this project was to display a variety of skills including data cleaning and data modeling. 
+This was a project created with R in R-Studio. The purpose of this project was to analyze and generate insights on Facebook paid post metrics and genres for movies.
 
 ### Algorithms used for analysis:
 - Linear Regression Model
